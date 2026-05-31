@@ -1,0 +1,10 @@
+[project]
+name = "webintegral-backend"
+version = "0.1.0"
+dependencies = [
+  "fastapi",
+  "uvicorn[standard]",
+  "sqlmodel",
+  "asyncpg",
+  "pydantic"
+]
