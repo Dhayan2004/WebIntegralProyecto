@@ -15,4 +15,9 @@ backend/.pytest_cache/
 .env
 frontend/.env
 backend/.env
+
+# Configuración local de editores (VS Code)
+.vscode/
+
+# Archivos del sistema operativo
 .DS_Store
