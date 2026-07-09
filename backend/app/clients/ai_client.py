@@ -1,2 +1,3 @@
 class AIClient:
-    pass
+    def generate_text(self, prompt: str) -> str:
+        return prompt.strip()
