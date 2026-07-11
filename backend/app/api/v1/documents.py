@@ -6,7 +6,7 @@ from app.dependencies.auth import get_current_user
 from app.dependencies.db import get_db
 from app.schemas.documents import DocumentCreate, DocumentOut, DocumentUpdate
 from app.services.document_service import DocumentService
-from app.services.rag.rag_manager import RAGManager
+from app.services.document_ingestion_service import DocumentIngestionService
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -31,8 +31,7 @@ async def upload_document(
         subject_id=subject_id
     )
 
-    # Run ingest in background task
-    background_tasks.add_task(RAGManager.ingest_pdf_bytes, db, doc.id, file_bytes)
+    background_tasks.add_task(DocumentIngestionService.ingest_pdf, db, doc.id, file_bytes, file_name)
     return doc
 
 

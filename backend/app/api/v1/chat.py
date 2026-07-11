@@ -13,7 +13,7 @@ from app.schemas.chat import (
     ChatAskResponse,
 )
 from app.services.chat_service import ChatService
-from app.services.rag.orchestrator import RAGOrchestrator
+from app.services.rag_question_service import RAGQuestionService
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -24,11 +24,11 @@ def ask_rag(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    return RAGOrchestrator.answer_question(
+    return RAGQuestionService.answer(
         db=db,
         user_id=current_user.id,
         question=payload.question,
-        document_id=payload.document_id
+        document_id=payload.document_id,
     )
 
 

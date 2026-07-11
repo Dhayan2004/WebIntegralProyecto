@@ -2,9 +2,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-# Import all models to ensure they are registered and created
+from app.core.config import settings
+from app.core.logger import setup_logging
+
+setup_logging(settings.LOG_LEVEL)
+
 from app.db.base import Base
 from app.db.session import engine
+
 from app.db.models.user import User
 from app.db.models.subject import Subject
 from app.db.models.document import Document, DocumentChunk
@@ -19,7 +24,6 @@ from app.db.models.user_profile import UserProfile
 from app.db.models.study_room import StudyRoom
 from app.db.models.study_metrics import StudyMetrics
 
-# Import API routers
 from app.api.v1.auth import router as auth_router
 from app.api.v1.subjects import router as subjects_router
 from app.api.v1.documents import router as documents_router
@@ -30,14 +34,10 @@ from app.api.v1.quizzes import router as quizzes_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.users import router as users_router
 
-from app.core.config import settings
-
-# Create database tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
-# CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BACKEND_CORS_ORIGINS,
@@ -46,7 +46,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API routers under /api prefix
 app.include_router(auth_router, prefix="/api")
 app.include_router(subjects_router, prefix="/api")
 app.include_router(documents_router, prefix="/api")
@@ -62,7 +61,4 @@ app.include_router(users_router, prefix="/api")
 def test_connection():
     with engine.connect() as connection:
         connection.execute(text("SELECT 1"))
-    return {
-        "message": "Database connected successfully",
-        "status": "online"
-    }
+    return {"message": "Database connected successfully", "status": "online"}

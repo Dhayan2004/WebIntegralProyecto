@@ -46,9 +46,9 @@ class ChatService:
 		session = ChatService.get_session(db, session_id, current_user)
 		user_message = ChatMessage(session_id=session.id, user_id=current_user.id, role="user", content=message)
 		
-		# Call RAG Orchestrator to generate answer
-		from app.services.rag.orchestrator import RAGOrchestrator
-		rag_result = RAGOrchestrator.answer_question(db, current_user.id, message)
+		# Call RAG Engine to generate answer
+		from app.services.rag_question_service import RAGQuestionService
+		rag_result = RAGQuestionService.answer(db, current_user.id, message)
 		assistant_text = rag_result["answer"]
 		
 		assistant_message = ChatMessage(session_id=session.id, user_id=current_user.id, role="assistant", content=assistant_text)
