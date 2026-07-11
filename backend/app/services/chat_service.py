@@ -45,7 +45,12 @@ class ChatService:
 	def send_message(db: Session, session_id: str, current_user: User, message: str) -> list[ChatMessage]:
 		session = ChatService.get_session(db, session_id, current_user)
 		user_message = ChatMessage(session_id=session.id, user_id=current_user.id, role="user", content=message)
-		assistant_text = f"Respuesta de StudyBuddy: {message.strip()[:500]}"
+		
+		# Call RAG Orchestrator to generate answer
+		from app.services.rag.orchestrator import RAGOrchestrator
+		rag_result = RAGOrchestrator.answer_question(db, current_user.id, message)
+		assistant_text = rag_result["answer"]
+		
 		assistant_message = ChatMessage(session_id=session.id, user_id=current_user.id, role="assistant", content=assistant_text)
 		db.add_all([user_message, assistant_message])
 		db.commit()

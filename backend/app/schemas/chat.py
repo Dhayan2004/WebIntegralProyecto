@@ -30,3 +30,14 @@ class ChatMessageOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ChatAskRequest(BaseModel):
+    question: str
+    document_id: str | None = None
+
+
+class ChatAskResponse(BaseModel):
+    answer: str
+    sources: list[dict]
+

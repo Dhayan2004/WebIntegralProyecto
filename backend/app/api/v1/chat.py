@@ -1,12 +1,36 @@
 from fastapi import APIRouter, Depends, status
+from sqlalchemy.orm import Session
 
 from app.db.models.user import User
 from app.dependencies.auth import get_current_user
 from app.dependencies.db import get_db
-from app.schemas.chat import ChatMessageCreate, ChatMessageOut, ChatSessionCreate, ChatSessionOut
+from app.schemas.chat import (
+    ChatMessageCreate,
+    ChatMessageOut,
+    ChatSessionCreate,
+    ChatSessionOut,
+    ChatAskRequest,
+    ChatAskResponse,
+)
 from app.services.chat_service import ChatService
+from app.services.rag.orchestrator import RAGOrchestrator
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
+
+
+@router.post("/ask", response_model=ChatAskResponse)
+def ask_rag(
+    payload: ChatAskRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return RAGOrchestrator.answer_question(
+        db=db,
+        user_id=current_user.id,
+        question=payload.question,
+        document_id=payload.document_id
+    )
+
 
 
 @router.get("/sessions", response_model=list[ChatSessionOut])

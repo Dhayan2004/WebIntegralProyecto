@@ -1,12 +1,39 @@
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, status, UploadFile, File, Form, BackgroundTasks
+from sqlalchemy.orm import Session
 
 from app.db.models.user import User
 from app.dependencies.auth import get_current_user
 from app.dependencies.db import get_db
 from app.schemas.documents import DocumentCreate, DocumentOut, DocumentUpdate
 from app.services.document_service import DocumentService
+from app.services.rag.rag_manager import RAGManager
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
+
+
+@router.post("/upload", response_model=DocumentOut, status_code=status.HTTP_201_CREATED)
+async def upload_document(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    subject_id: str = Form(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    file_name = file.filename or "documento.pdf"
+    title = file_name.rsplit(".", 1)[0].replace("_", " ").replace("-", " ").title()
+    file_bytes = await file.read()
+
+    doc = DocumentService.create_processing_document(
+        db=db,
+        current_user=current_user,
+        title=title,
+        file_name=file_name,
+        subject_id=subject_id
+    )
+
+    # Run ingest in background task
+    background_tasks.add_task(RAGManager.ingest_pdf_bytes, db, doc.id, file_bytes)
+    return doc
 
 
 @router.get("", response_model=list[DocumentOut])

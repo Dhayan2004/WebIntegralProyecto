@@ -29,17 +29,17 @@ class FlashcardService:
 				raise HTTPException(status_code=404, detail="Documento no encontrado")
 			source_text = source_text or document.content or document.title
 
-		concepts = [part.strip() for part in source_text.replace("\n", ". ").split(".") if part.strip()]
-		if not concepts:
-			concepts = ["Concepto principal"]
+		from app.strategies.flashcard_strategy import FlashcardStrategy
+		strategy = FlashcardStrategy()
+		generated_cards = strategy.build(source_text, count)
 
 		cards: list[Flashcard] = []
-		for index, concept in enumerate(concepts[: max(1, min(count, 20))], start=1):
+		for concept in generated_cards:
 			card = Flashcard(
 				user_id=current_user.id,
 				document_id=document_id,
-				question=f"Pregunta {index}: Que debes recordar sobre este tema?",
-				answer=concept[:500],
+				question=concept.get("question", "Pregunta de estudio"),
+				answer=concept.get("answer", ""),
 			)
 			db.add(card)
 			cards.append(card)

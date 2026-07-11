@@ -19,10 +19,10 @@ class SummaryService:
 
 	@staticmethod
 	def build_summary(text: str) -> str:
-		clean = " ".join((text or "").split())
-		if not clean:
-			return "No hay contenido suficiente para generar un resumen."
-		return clean[:700] + ("..." if len(clean) > 700 else "")
+		from app.strategies.summary_strategy import SummaryStrategy
+		strategy = SummaryStrategy()
+		return strategy.build(text)
+
 
 	@staticmethod
 	def create_summary(

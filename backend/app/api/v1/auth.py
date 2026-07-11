@@ -18,8 +18,15 @@ from app.schemas.auth import (
 )
 from app.services.auth_service import AuthService
 from app.services.user_service import UserService
+from app.schemas.users import UserProfile
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
+
+@router.get("/me", response_model=UserProfile)
+def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return UserService.serialize_user(db, current_user)
+
 
 
 @router.post("/register", response_model=RegisterResponse, status_code=status.HTTP_201_CREATED)

@@ -29,16 +29,18 @@ class QuizService:
 				raise HTTPException(status_code=404, detail="Documento no encontrado")
 			source_text = source_text or document.content or document.title
 
-		fragments = [part.strip() for part in source_text.replace("\n", ". ").split(".") if part.strip()] or ["Concepto principal"]
+		from app.strategies.quiz_strategy import QuizStrategy
+		strategy = QuizStrategy()
+		generated_quizzes = strategy.build(source_text, count)
+
 		quizzes: list[Quiz] = []
-		for index, fragment in enumerate(fragments[: max(1, min(count, 20))], start=1):
-			correct = fragment[:120]
+		for q in generated_quizzes:
 			quiz = Quiz(
 				user_id=current_user.id,
 				document_id=document_id,
-				question=f"Pregunta {index}: Cual opcion resume mejor el contenido?",
-				options=[correct, "Una idea no relacionada", "Un dato insuficiente", "Ninguna de las anteriores"],
-				correct_answer=correct,
+				question=q.get("question", "Pregunta de examen"),
+				options=q.get("options", ["Opción A", "Opción B", "Opción C", "Opción D"]),
+				correct_answer=q.get("correct_answer", "Opción A"),
 			)
 			db.add(quiz)
 			quizzes.append(quiz)

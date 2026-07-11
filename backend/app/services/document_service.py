@@ -39,6 +39,29 @@ class DocumentService:
 		return document
 
 	@staticmethod
+	def create_processing_document(
+		db: Session,
+		current_user: User,
+		title: str,
+		file_name: str,
+		subject_id: str | None = None,
+	) -> Document:
+		document = Document(
+			user_id=current_user.id,
+			title=title,
+			content="",
+			subject_id=subject_id,
+			file_name=file_name,
+			file_size_bytes=0,
+			status="processing",
+		)
+		db.add(document)
+		db.commit()
+		db.refresh(document)
+		return document
+
+
+	@staticmethod
 	def get_document(db: Session, document_id: str, current_user: User) -> Document:
 		document = db.query(Document).filter(Document.id == document_id, Document.user_id == current_user.id).first()
 		if not document:
