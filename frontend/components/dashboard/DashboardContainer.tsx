@@ -1,5 +1,7 @@
 import WorkspaceShell from "@/components/common/WorkspaceShell";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import QuickActions from "@/components/dashboard/QuickActions";
+import RecentActivity from "@/components/dashboard/RecentActivity";
 import StatsGrid from "@/components/dashboard/StatsGrid";
 import type {
   DashboardMetrics,
@@ -26,6 +28,12 @@ export default function DashboardContainer() {
         <DashboardHeader userName={mockUser.name} />
 
         <StatsGrid metrics={mockMetrics} />
+
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+          <QuickActions />
+
+          <RecentActivity />
+        </div>
       </div>
     </WorkspaceShell>
   );

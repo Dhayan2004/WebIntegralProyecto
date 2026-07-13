@@ -1,1 +1,5 @@
-export default function FlashcardsPage() { return <div>Flashcards</div>; }
+import FlashcardsContainer from "@/components/flashcards/FlashcardsContainer";
+
+export default function FlashcardsPage() {
+  return <FlashcardsContainer />;
+}

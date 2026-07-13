@@ -1,1 +1,5 @@
-export default function SubjectsPage() { return <div>Materias</div>; }
+import SubjectsContainer from "@/components/subjects/SubjectsContainer";
+
+export default function SubjectsPage() {
+  return <SubjectsContainer />;
+}
