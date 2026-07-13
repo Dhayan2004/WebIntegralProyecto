@@ -1,3 +1,4 @@
+import WorkspaceShell from "@/components/common/WorkspaceShell";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import StatsGrid from "@/components/dashboard/StatsGrid";
 import type {
@@ -20,12 +21,12 @@ const mockMetrics: DashboardMetrics = {
 
 export default function DashboardContainer() {
   return (
-    <main className="min-h-screen bg-brand-bg">
+    <WorkspaceShell userName={mockUser.name}>
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
         <DashboardHeader userName={mockUser.name} />
 
         <StatsGrid metrics={mockMetrics} />
       </div>
-    </main>
+    </WorkspaceShell>
   );
 }

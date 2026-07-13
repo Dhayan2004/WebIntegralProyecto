@@ -5,43 +5,51 @@ interface StatsGridProps {
   metrics: DashboardMetrics;
 }
 
-export default function StatsGrid({ metrics }: StatsGridProps) {
+export default function StatsGrid({
+  metrics,
+}: StatsGridProps) {
   const stats = [
     {
       title: "Materias",
       value: metrics.subjects,
       description: "Materias que forman parte de tu espacio de estudio.",
       abbreviation: "MA",
+      href: "/subjects",
     },
     {
       title: "Documentos",
       value: metrics.documents,
       description: "Archivos que has agregado a la plataforma.",
       abbreviation: "DO",
+      href: "/documents",
     },
     {
       title: "Resúmenes",
       value: metrics.summaries,
       description: "Resúmenes creados para apoyar tu aprendizaje.",
       abbreviation: "RE",
+      href: "/summaries",
     },
     {
       title: "Flashcards",
       value: metrics.flashcards,
       description: "Tarjetas disponibles para repasar tus temas.",
       abbreviation: "FL",
+      href: "/flashcards",
     },
     {
       title: "Cuestionarios",
       value: metrics.quizzes,
       description: "Evaluaciones generadas para medir tu progreso.",
       abbreviation: "CU",
+      href: "/quizzes",
     },
     {
       title: "Mensajes con IA",
       value: metrics.chat_messages,
       description: "Mensajes enviados durante tus sesiones de estudio.",
       abbreviation: "IA",
+      href: "/chat",
     },
   ];
 
@@ -68,6 +76,7 @@ export default function StatsGrid({ metrics }: StatsGridProps) {
             value={stat.value}
             description={stat.description}
             abbreviation={stat.abbreviation}
+            href={stat.href}
           />
         ))}
       </div>
