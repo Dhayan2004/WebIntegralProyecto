@@ -1,1 +1,5 @@
-export default function SummariesPage() { return <div>Resúmenes</div>; }
+import SummariesContainer from "@/components/summaries/SummariesContainer";
+
+export default function SummariesPage() {
+  return <SummariesContainer />;
+}

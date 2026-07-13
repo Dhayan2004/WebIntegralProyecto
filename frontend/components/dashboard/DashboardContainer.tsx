@@ -1,0 +1,40 @@
+import WorkspaceShell from "@/components/common/WorkspaceShell";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import QuickActions from "@/components/dashboard/QuickActions";
+import RecentActivity from "@/components/dashboard/RecentActivity";
+import StatsGrid from "@/components/dashboard/StatsGrid";
+import type {
+  DashboardMetrics,
+  DashboardUser,
+} from "@/types/dashboard";
+
+const mockUser: DashboardUser = {
+  name: "Aarón",
+};
+
+const mockMetrics: DashboardMetrics = {
+  subjects: 4,
+  documents: 12,
+  summaries: 7,
+  flashcards: 35,
+  quizzes: 8,
+  chat_messages: 21,
+};
+
+export default function DashboardContainer() {
+  return (
+    <WorkspaceShell userName={mockUser.name}>
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
+        <DashboardHeader userName={mockUser.name} />
+
+        <StatsGrid metrics={mockMetrics} />
+
+        <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+          <QuickActions />
+
+          <RecentActivity />
+        </div>
+      </div>
+    </WorkspaceShell>
+  );
+}
