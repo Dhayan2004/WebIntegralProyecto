@@ -4,7 +4,9 @@ interface SubjectsToolbarProps {
   searchTerm: string;
   selectedFilter: SubjectFilter;
   onSearchChange: (value: string) => void;
-  onFilterChange: (filter: SubjectFilter) => void;
+  onFilterChange: (
+    filter: SubjectFilter,
+  ) => void;
 }
 
 const filters: Array<{
@@ -14,10 +16,6 @@ const filters: Array<{
   {
     label: "Todas",
     value: "all",
-  },
-  {
-    label: "Favoritas",
-    value: "favorites",
   },
   {
     label: "Recientes",
@@ -49,7 +47,9 @@ export default function SubjectsToolbar({
           type="search"
           value={searchTerm}
           onChange={(event) =>
-            onSearchChange(event.target.value)
+            onSearchChange(
+              event.target.value,
+            )
           }
           placeholder="Buscar por nombre o descripción"
           className="text-helper w-full rounded-xl border border-brand-border bg-brand-bg py-3 pl-11 pr-4 text-sm outline-none transition placeholder:text-dark-muted focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan-light"
@@ -63,14 +63,17 @@ export default function SubjectsToolbar({
       >
         {filters.map((filter) => {
           const isActive =
-            selectedFilter === filter.value;
+            selectedFilter ===
+            filter.value;
 
           return (
             <button
               key={filter.value}
               type="button"
               onClick={() =>
-                onFilterChange(filter.value)
+                onFilterChange(
+                  filter.value,
+                )
               }
               className={`text-nav rounded-xl px-4 py-2.5 text-sm transition ${
                 isActive
