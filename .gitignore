@@ -9,6 +9,8 @@ backend/venv/
 backend/.venv/
 __pycache__/
 backend/*.pyc
+backend/**/*.pyc
+backend/*.db
 backend/.pytest_cache/
 
 # Archivos de configuración local y secretos (¡Seguridad!)

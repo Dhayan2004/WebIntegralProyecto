@@ -1,3 +1,31 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-brand-bg text-dark-body font-medium font-sans antialiased;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-dark-title font-bold tracking-tight;
+  }
+}
+
+@layer utilities {
+  .text-display {
+    @apply font-black text-dark-title tracking-tighter;
+  }
+
+  .text-nav {
+    @apply font-semibold tracking-normal;
+  }
+
+  .text-helper {
+    @apply font-light text-dark-muted leading-relaxed;
+  }
+  
+  .text-brand {
+    @apply text-brand-cyan font-semibold;
+  }
+}
