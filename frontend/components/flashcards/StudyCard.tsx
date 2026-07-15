@@ -1,9 +1,14 @@
 "use client";
 
-import type { FlashcardDeck } from "@/types/flashcard";
+import type { FlashcardItem } from "@/types/flashcard";
+
+interface DeckData {
+  name: string;
+  cards: FlashcardItem[];
+}
 
 interface StudyCardProps {
-  deck: FlashcardDeck;
+  deck: DeckData;
   currentIndex: number;
   showAnswer: boolean;
   onToggleAnswer: () => void;
@@ -21,7 +26,8 @@ export default function StudyCard({
 }: StudyCardProps) {
   const currentCard = deck.cards[currentIndex];
   const totalCards = deck.cards.length;
-  const progress = ((currentIndex + 1) / totalCards) * 100;
+  const progress =
+    ((currentIndex + 1) / totalCards) * 100;
 
   return (
     <section
@@ -34,32 +40,23 @@ export default function StudyCard({
             <p className="text-brand text-sm">
               Sesión activa
             </p>
-
             <h2
               id="active-deck-title"
               className="text-display mt-1 text-2xl"
             >
               {deck.name}
             </h2>
-
-            <p className="text-helper mt-1 text-sm">
-              {deck.subject}
-            </p>
           </div>
-
           <div className="rounded-xl bg-brand-cyan-muted px-4 py-2">
             <p className="text-nav text-sm text-brand-cyan">
               Tarjeta {currentIndex + 1} de {totalCards}
             </p>
           </div>
         </div>
-
         <div className="mt-5 h-2 overflow-hidden rounded-full bg-brand-bg">
           <div
             className="h-full rounded-full bg-brand-cyan transition-all duration-300"
-            style={{
-              width: `${progress}%`,
-            }}
+            style={{ width: `${progress}%` }}
           />
         </div>
       </div>
@@ -73,13 +70,11 @@ export default function StudyCard({
           <p className="text-brand text-sm">
             {showAnswer ? "Respuesta" : "Pregunta"}
           </p>
-
           <p className="text-display mt-5 max-w-2xl text-2xl leading-relaxed sm:text-3xl">
             {showAnswer
               ? currentCard.answer
               : currentCard.question}
           </p>
-
           <p className="text-helper mt-8 text-sm">
             {showAnswer
               ? "Haz clic para volver a la pregunta"
@@ -96,7 +91,6 @@ export default function StudyCard({
           >
             ← Anterior
           </button>
-
           <button
             type="button"
             onClick={onToggleAnswer}
@@ -106,7 +100,6 @@ export default function StudyCard({
               ? "Ver pregunta"
               : "Mostrar respuesta"}
           </button>
-
           <button
             type="button"
             onClick={onNext}

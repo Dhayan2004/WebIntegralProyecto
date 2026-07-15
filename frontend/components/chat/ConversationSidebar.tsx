@@ -3,7 +3,7 @@ import type { ChatConversation } from "@/types/chat";
 
 interface ConversationSidebarProps {
   conversations: ChatConversation[];
-  selectedConversationId: string;
+  selectedConversationId: string | null;
   onSelectConversation: (
     conversation: ChatConversation,
   ) => void;

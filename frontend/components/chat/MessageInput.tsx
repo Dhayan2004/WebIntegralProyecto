@@ -8,11 +8,13 @@ import {
 interface MessageInputProps {
   initialValue?: string;
   onSend: (message: string) => void;
+  disabled?: boolean;
 }
 
 export default function MessageInput({
   initialValue = "",
   onSend,
+  disabled = false,
 }: MessageInputProps) {
   const [message, setMessage] =
     useState(initialValue);
@@ -60,7 +62,7 @@ export default function MessageInput({
 
         <button
           type="submit"
-          disabled={!message.trim()}
+          disabled={!message.trim() || disabled}
           className="text-nav flex h-11 shrink-0 items-center justify-center rounded-xl bg-brand-cyan px-5 text-sm text-white transition hover:bg-brand-cyan-hover disabled:cursor-not-allowed disabled:opacity-50"
         >
           Enviar

@@ -6,26 +6,21 @@ const ACCESS_TOKEN_KEY = "studybuddy_access_token";
 const REFRESH_TOKEN_KEY = "studybuddy_refresh_token";
 
 export function getAccessToken(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
+  if (typeof window === "undefined") return null;
   return localStorage.getItem(ACCESS_TOKEN_KEY);
+}
+
+function getRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
 export function saveTokens(
   accessToken: string,
   refreshToken: string,
 ): void {
-  localStorage.setItem(
-    ACCESS_TOKEN_KEY,
-    accessToken,
-  );
-
-  localStorage.setItem(
-    REFRESH_TOKEN_KEY,
-    refreshToken,
-  );
+  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
 }
 
 export function clearTokens(): void {
@@ -33,10 +28,37 @@ export function clearTokens(): void {
   localStorage.removeItem(REFRESH_TOKEN_KEY);
 }
 
+async function tryRefreshToken(): Promise<boolean> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return false;
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/auth/refresh`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      },
+    );
+
+    if (!response.ok) return false;
+
+    const data = await response.json();
+    saveTokens(data.access_token, data.refresh_token);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 interface ApiRequestOptions
   extends Omit<RequestInit, "body"> {
   body?: unknown;
   authenticated?: boolean;
+  _retried?: boolean;
 }
 
 export async function apiRequest<T>(
@@ -47,31 +69,22 @@ export async function apiRequest<T>(
     body,
     authenticated = false,
     headers,
+    _retried = false,
     ...requestOptions
   } = options;
 
   const requestHeaders = new Headers(headers);
 
   if (body !== undefined) {
-    requestHeaders.set(
-      "Content-Type",
-      "application/json",
-    );
+    requestHeaders.set("Content-Type", "application/json");
   }
 
   if (authenticated) {
     const token = getAccessToken();
-
     if (!token) {
-      throw new Error(
-        "No hay una sesión activa.",
-      );
+      throw new Error("No hay una sesión activa.");
     }
-
-    requestHeaders.set(
-      "Authorization",
-      `Bearer ${token}`,
-    );
+    requestHeaders.set("Authorization", `Bearer ${token}`);
   }
 
   const response = await fetch(
@@ -90,9 +103,19 @@ export async function apiRequest<T>(
     return undefined as T;
   }
 
-  const data = await response.json().catch(
-    () => null,
-  );
+  if (response.status === 401 && authenticated && !_retried) {
+    const refreshed = await tryRefreshToken();
+    if (refreshed) {
+      return apiRequest<T>(endpoint, {
+        ...options,
+        _retried: true,
+      });
+    }
+    clearTokens();
+    throw new Error("Sesión expirada. Iniciá sesión nuevamente.");
+  }
+
+  const data = await response.json().catch(() => null);
 
   if (!response.ok) {
     const detail =

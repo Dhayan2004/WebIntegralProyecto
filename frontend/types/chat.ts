@@ -1,16 +1,30 @@
 export type ChatRole = "user" | "assistant";
 
-export interface ChatMessage {
+export interface ChatSessionApi {
   id: string;
-  role: ChatRole;
+  title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatMessageApi {
+  id: string;
+  session_id: string;
+  role: string;
   content: string;
-  createdAt: string;
+  created_at: string;
 }
 
 export interface ChatConversation {
   id: string;
   title: string;
-  subject: string;
   updatedAt: string;
   messages: ChatMessage[];
+}
+
+export interface ChatMessage {
+  id: string;
+  role: ChatRole;
+  content: string;
+  createdAt: string;
 }

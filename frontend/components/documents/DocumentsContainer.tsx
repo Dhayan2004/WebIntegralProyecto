@@ -1,113 +1,144 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import WorkspaceShell from "@/components/common/WorkspaceShell";
 import DocumentUploadModal from "@/components/documents/DocumentUploadModal";
 import DocumentsGrid from "@/components/documents/DocumentsGrid";
 import DocumentsHeader from "@/components/documents/DocumentsHeader";
 import DocumentsToolbar from "@/components/documents/DocumentsToolbar";
+import { documentService } from "@/services/documentService";
+import { subjectsService } from "@/services/subjects.service";
 import type {
   DocumentFilter,
+  DocumentApi,
+  DocumentType,
   StudyDocument,
 } from "@/types/document";
+import type { SubjectApi } from "@/types/subject";
 
-const mockDocuments: StudyDocument[] = [
-  {
-    id: "doc-1",
-    title: "Introducción a Next.js",
-    description:
-      "Conceptos principales del App Router, componentes y rutas del proyecto.",
-    subject: "Desarrollo Web",
-    type: "pdf",
-    fileName: "introduccion-nextjs.pdf",
-    size: "2.4 MB",
-    pages: 18,
-    createdAt: "hoy",
-    isProcessed: true,
-  },
-  {
-    id: "doc-2",
-    title: "Normalización de bases de datos",
-    description:
-      "Material sobre formas normales, dependencias y diseño relacional.",
-    subject: "Bases de Datos",
-    type: "word",
-    fileName: "normalizacion.docx",
-    size: "860 KB",
-    pages: 12,
-    createdAt: "ayer",
-    isProcessed: true,
-  },
-  {
-    id: "doc-3",
-    title: "Metodologías ágiles",
-    description:
-      "Presentación sobre Scrum, Kanban y organización de equipos.",
-    subject: "Ingeniería de Software",
-    type: "presentation",
-    fileName: "metodologias-agiles.pptx",
-    size: "5.1 MB",
-    pages: 24,
-    createdAt: "hace 2 días",
-    isProcessed: true,
-  },
-  {
-    id: "doc-4",
-    title: "Preparación de los datos",
-    description:
-      "Notas de clase sobre limpieza, transformación y validación.",
-    subject: "Análisis de Datos",
-    type: "text",
-    fileName: "preparacion-datos.txt",
-    size: "42 KB",
-    pages: null,
-    createdAt: "hace 3 días",
-    isProcessed: false,
-  },
-  {
-    id: "doc-5",
-    title: "Relative clauses",
-    description:
-      "Ejercicios y ejemplos de cláusulas relativas en inglés.",
-    subject: "Inglés",
-    type: "pdf",
-    fileName: "relative-clauses.pdf",
-    size: "1.2 MB",
-    pages: 9,
-    createdAt: "hace 5 días",
-    isProcessed: true,
-  },
-  {
-    id: "doc-6",
-    title: "Teoría X y Teoría Y",
-    description:
-      "Análisis de los estilos de administración propuestos por McGregor.",
-    subject: "Comportamiento Organizacional",
-    type: "word",
-    fileName: "teoria-x-y.docx",
-    size: "740 KB",
-    pages: 14,
-    createdAt: "hace 1 semana",
-    isProcessed: true,
-  },
-];
+function deriveDocumentType(
+  fileName: string | null,
+): DocumentType {
+  if (!fileName) return "text";
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  if (ext === "pdf") return "pdf";
+  if (ext === "doc" || ext === "docx") return "word";
+  if (
+    ext === "ppt" ||
+    ext === "pptx"
+  )
+    return "presentation";
+  return "text";
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024)
+    return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(
+    diffMs / (1000 * 60 * 60 * 24),
+  );
+  if (diffDays === 0) return "hoy";
+  if (diffDays === 1) return "ayer";
+  if (diffDays < 7) return `hace ${diffDays} días`;
+  if (diffDays < 30)
+    return `hace ${Math.floor(diffDays / 7)} semanas`;
+  return date.toLocaleDateString("es-ES", {
+    day: "numeric",
+    month: "short",
+  });
+}
+
+function mapDocumentToStudy(
+  doc: DocumentApi,
+  subjectMap: Map<string, string>,
+): StudyDocument {
+  return {
+    id: doc.id,
+    title: doc.title,
+    subject: subjectMap.get(doc.subject_id ?? "") ?? "Sin materia",
+    type: deriveDocumentType(doc.file_name),
+    fileName: doc.file_name ?? "Sin nombre",
+    size: formatFileSize(doc.file_size_bytes),
+    createdAt: formatDate(doc.created_at),
+    isProcessed: doc.status === "processed",
+  };
+}
 
 export default function DocumentsContainer() {
-  const [searchTerm, setSearchTerm] =
-    useState("");
-
+  const [documents, setDocuments] = useState<
+    StudyDocument[]
+  >([]);
+  const [subjects, setSubjects] = useState<
+    SubjectApi[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(
+    null,
+  );
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] =
     useState<DocumentFilter>("all");
-
   const [isUploadModalOpen, setIsUploadModalOpen] =
     useState(false);
+
+  const subjectMap = useMemo(() => {
+    const map = new Map<string, string>();
+    subjects.forEach((s) => map.set(s.id, s.name));
+    return map;
+  }, [subjects]);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        setLoading(true);
+        const [docs, subs] = await Promise.all([
+          documentService.getAll(),
+          subjectsService.getAll(),
+        ]);
+        setSubjects(subs);
+        setDocuments(
+          docs.map((d) =>
+            mapDocumentToStudy(d, new Map(subs.map((s) => [s.id, s.name]))),
+          ),
+        );
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Error al cargar documentos",
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  function refreshDocuments() {
+    documentService
+      .getAll()
+      .then((docs) =>
+        setDocuments(
+          docs.map((d) => mapDocumentToStudy(d, subjectMap)),
+        ),
+      )
+      .catch(() => {});
+  }
 
   const filteredDocuments = useMemo(() => {
     const normalizedSearch =
       searchTerm.trim().toLowerCase();
-
-    return mockDocuments.filter((document) => {
+    return documents.filter((document) => {
       const matchesSearch =
         normalizedSearch.length === 0 ||
         document.title
@@ -119,14 +150,12 @@ export default function DocumentsContainer() {
         document.fileName
           .toLowerCase()
           .includes(normalizedSearch);
-
       const matchesFilter =
         selectedFilter === "all" ||
         document.type === selectedFilter;
-
       return matchesSearch && matchesFilter;
     });
-  }, [searchTerm, selectedFilter]);
+  }, [documents, searchTerm, selectedFilter]);
 
   const hasFilters =
     searchTerm.trim().length > 0 ||
@@ -141,10 +170,8 @@ export default function DocumentsContainer() {
     <WorkspaceShell userName="Aarón">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
         <DocumentsHeader
-          totalDocuments={mockDocuments.length}
-          onUpload={() =>
-            setIsUploadModalOpen(true)
-          }
+          totalDocuments={documents.length}
+          onUpload={() => setIsUploadModalOpen(true)}
         />
 
         <DocumentsToolbar
@@ -162,7 +189,6 @@ export default function DocumentsContainer() {
             </span>{" "}
             resultados
           </p>
-
           {hasFilters && (
             <button
               type="button"
@@ -174,21 +200,35 @@ export default function DocumentsContainer() {
           )}
         </div>
 
-        <DocumentsGrid
-          documents={filteredDocuments}
-          hasFilters={hasFilters}
-          onClearFilters={clearFilters}
-          onUpload={() =>
-            setIsUploadModalOpen(true)
-          }
-        />
+        {loading && (
+          <p className="text-helper text-center text-sm py-12">
+            Cargando documentos...
+          </p>
+        )}
+
+        {error && (
+          <p className="text-red-500 text-center text-sm py-12">
+            {error}
+          </p>
+        )}
+
+        {!loading && !error && (
+          <DocumentsGrid
+            documents={filteredDocuments}
+            hasFilters={hasFilters}
+            onClearFilters={clearFilters}
+            onUpload={() => setIsUploadModalOpen(true)}
+          />
+        )}
       </div>
 
       <DocumentUploadModal
         isOpen={isUploadModalOpen}
-        onClose={() =>
-          setIsUploadModalOpen(false)
-        }
+        subjects={subjects}
+        onClose={() => {
+          setIsUploadModalOpen(false);
+          refreshDocuments();
+        }}
       />
     </WorkspaceShell>
   );

@@ -1,134 +1,111 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import WorkspaceShell from "@/components/common/WorkspaceShell";
 import GenerateSummaryModal from "@/components/summaries/GenerateSummaryModal";
 import SummariesGrid from "@/components/summaries/SummariesGrid";
 import SummariesHeader from "@/components/summaries/SummariesHeader";
 import SummariesToolbar from "@/components/summaries/SummariesToolbar";
+import { summaryService } from "@/services/summaryService";
 import type {
   StudySummary,
+  SummaryApi,
   SummaryFilter,
 } from "@/types/summary";
 
-const mockSummaries: StudySummary[] = [
-  {
-    id: "summary-1",
-    title: "Fundamentos de Next.js",
-    subject: "Desarrollo Web",
-    sourceDocument: "introduccion-nextjs.pdf",
-    excerpt:
-      "Next.js es un framework de React que facilita la creación de aplicaciones modernas mediante renderizado híbrido, rutas y componentes.",
-    length: "medium",
-    wordCount: 640,
-    createdAt: "hoy",
-    isFavorite: true,
-  },
-  {
-    id: "summary-2",
-    title: "Formas normales y dependencias",
-    subject: "Bases de Datos",
-    sourceDocument: "normalizacion.docx",
-    excerpt:
-      "La normalización organiza la información para reducir redundancias y evitar anomalías durante las operaciones de una base de datos.",
-    length: "detailed",
-    wordCount: 1240,
-    createdAt: "ayer",
-    isFavorite: true,
-  },
-  {
-    id: "summary-3",
-    title: "Principios de las metodologías ágiles",
-    subject: "Ingeniería de Software",
-    sourceDocument: "metodologias-agiles.pptx",
-    excerpt:
-      "Las metodologías ágiles priorizan entregas iterativas, colaboración constante y adaptación ante los cambios del proyecto.",
-    length: "short",
-    wordCount: 340,
-    createdAt: "hace 2 días",
-    isFavorite: false,
-  },
-  {
-    id: "summary-4",
-    title: "Preparación y limpieza de datos",
-    subject: "Análisis de Datos",
-    sourceDocument: "preparacion-datos.txt",
-    excerpt:
-      "La preparación de los datos incluye limpieza, transformación, detección de valores inválidos y estandarización.",
-    length: "medium",
-    wordCount: 710,
-    createdAt: "hace 3 días",
-    isFavorite: false,
-  },
-  {
-    id: "summary-5",
-    title: "Uso de relative clauses",
-    subject: "Inglés",
-    sourceDocument: "relative-clauses.pdf",
-    excerpt:
-      "Las cláusulas relativas agregan información sobre una persona, objeto o lugar mediante pronombres como who, which y that.",
-    length: "short",
-    wordCount: 290,
-    createdAt: "hace 5 días",
-    isFavorite: false,
-  },
-  {
-    id: "summary-6",
-    title: "Comparación entre Teoría X y Teoría Y",
-    subject: "Comportamiento Organizacional",
-    sourceDocument: "teoria-x-y.docx",
-    excerpt:
-      "McGregor presentó dos perspectivas opuestas sobre la motivación y el comportamiento de los colaboradores dentro de una organización.",
-    length: "detailed",
-    wordCount: 1080,
-    createdAt: "hace 1 semana",
-    isFavorite: false,
-  },
-];
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(
+    diffMs / (1000 * 60 * 60 * 24),
+  );
+  if (diffDays === 0) return "hoy";
+  if (diffDays === 1) return "ayer";
+  if (diffDays < 7) return `hace ${diffDays} días`;
+  if (diffDays < 30)
+    return `hace ${Math.floor(diffDays / 7)} semanas`;
+  return date.toLocaleDateString("es-ES", {
+    day: "numeric",
+    month: "short",
+  });
+}
+
+function mapSummaryToStudy(
+  s: SummaryApi,
+): StudySummary {
+  const content = s.content || "";
+  const wordCount = content
+    .split(/\s+/)
+    .filter(Boolean).length;
+  const excerpt =
+    content.length > 150
+      ? content.slice(0, 150) + "..."
+      : content;
+
+  return {
+    id: s.id,
+    title: s.title,
+    sourceDocument: s.document_id
+      ? `Documento ${s.document_id.slice(0, 8)}`
+      : "Sin documento",
+    excerpt,
+    wordCount,
+    createdAt: formatDate(s.created_at),
+  };
+}
 
 export default function SummariesContainer() {
-  const [searchTerm, setSearchTerm] =
-    useState("");
-
+  const [summaries, setSummaries] = useState<
+    StudySummary[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(
+    null,
+  );
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] =
     useState<SummaryFilter>("all");
-
   const [
     isGenerateModalOpen,
     setIsGenerateModalOpen,
   ] = useState(false);
 
+  useEffect(() => {
+    setLoading(true);
+    summaryService
+      .getAll()
+      .then((data) =>
+        setSummaries(data.map(mapSummaryToStudy)),
+      )
+      .catch((err) =>
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Error al cargar resúmenes",
+        ),
+      )
+      .finally(() => setLoading(false));
+  }, []);
+
   const filteredSummaries = useMemo(() => {
     const normalizedSearch =
       searchTerm.trim().toLowerCase();
-
-    return mockSummaries.filter((summary) => {
+    return summaries.filter((summary) => {
       const matchesSearch =
         normalizedSearch.length === 0 ||
         summary.title
           .toLowerCase()
           .includes(normalizedSearch) ||
-        summary.subject
-          .toLowerCase()
-          .includes(normalizedSearch) ||
         summary.sourceDocument
           .toLowerCase()
           .includes(normalizedSearch);
-
-      const matchesFilter =
-        selectedFilter === "all" ||
-        summary.length === selectedFilter ||
-        (selectedFilter === "favorites" &&
-          summary.isFavorite);
-
-      return matchesSearch && matchesFilter;
+      return matchesSearch;
     });
-  }, [searchTerm, selectedFilter]);
+  }, [summaries, searchTerm]);
 
-  const hasFilters =
-    searchTerm.trim().length > 0 ||
-    selectedFilter !== "all";
+  const hasFilters = searchTerm.trim().length > 0;
 
   function clearFilters() {
     setSearchTerm("");
@@ -139,7 +116,7 @@ export default function SummariesContainer() {
     <WorkspaceShell userName="Aarón">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
         <SummariesHeader
-          totalSummaries={mockSummaries.length}
+          totalSummaries={summaries.length}
           onGenerate={() =>
             setIsGenerateModalOpen(true)
           }
@@ -160,7 +137,6 @@ export default function SummariesContainer() {
             </span>{" "}
             resultados
           </p>
-
           {hasFilters && (
             <button
               type="button"
@@ -172,21 +148,43 @@ export default function SummariesContainer() {
           )}
         </div>
 
-        <SummariesGrid
-          summaries={filteredSummaries}
-          hasFilters={hasFilters}
-          onClearFilters={clearFilters}
-          onGenerate={() =>
-            setIsGenerateModalOpen(true)
-          }
-        />
+        {loading && (
+          <p className="text-helper text-center text-sm py-12">
+            Cargando resúmenes...
+          </p>
+        )}
+
+        {error && (
+          <p className="text-red-500 text-center text-sm py-12">
+            {error}
+          </p>
+        )}
+
+        {!loading && !error && (
+          <SummariesGrid
+            summaries={filteredSummaries}
+            hasFilters={hasFilters}
+            onClearFilters={clearFilters}
+            onGenerate={() =>
+              setIsGenerateModalOpen(true)
+            }
+          />
+        )}
       </div>
 
       <GenerateSummaryModal
         isOpen={isGenerateModalOpen}
-        onClose={() =>
-          setIsGenerateModalOpen(false)
-        }
+        onClose={() => {
+          setIsGenerateModalOpen(false);
+          setLoading(true);
+          summaryService
+            .getAll()
+            .then((data) =>
+              setSummaries(data.map(mapSummaryToStudy)),
+            )
+            .catch(() => {})
+            .finally(() => setLoading(false));
+        }}
       />
     </WorkspaceShell>
   );

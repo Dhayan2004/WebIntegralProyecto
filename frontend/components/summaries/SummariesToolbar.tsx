@@ -17,22 +17,6 @@ const filters: Array<{
     label: "Todos",
     value: "all",
   },
-  {
-    label: "Cortos",
-    value: "short",
-  },
-  {
-    label: "Medios",
-    value: "medium",
-  },
-  {
-    label: "Detallados",
-    value: "detailed",
-  },
-  {
-    label: "Favoritos",
-    value: "favorites",
-  },
 ];
 
 export default function SummariesToolbar({

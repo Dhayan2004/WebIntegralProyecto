@@ -22,7 +22,7 @@ export default function ChatHeader({
           </h1>
 
           <p className="text-helper truncate text-xs">
-            {conversation.subject} · Asistente de estudio
+            Asistente de estudio
           </p>
         </div>
       </div>

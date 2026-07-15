@@ -1,147 +1,129 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import WorkspaceShell from "@/components/common/WorkspaceShell";
 import DeckList from "@/components/flashcards/DeckList";
 import FlashcardsHeader from "@/components/flashcards/FlashcardsHeader";
+import GenerateFlashcardsModal from "@/components/flashcards/GenerateFlashcardsModal";
 import QuickStudyPanel from "@/components/flashcards/QuickStudyPanel";
 import StudyCard from "@/components/flashcards/StudyCard";
 import StudyProgress from "@/components/flashcards/StudyProgress";
+import { flashcardService } from "@/services/flashcardService";
 import type {
-  FlashcardDeck,
-  StudyProgressData,
+  FlashcardApi,
+  FlashcardItem,
 } from "@/types/flashcard";
 
-const mockDecks: FlashcardDeck[] = [
-  {
-    id: "nextjs",
-    name: "Fundamentos de Next.js",
-    subject: "Desarrollo Web",
-    description: "Conceptos principales de Next.js.",
-    cardCount: 12,
-    masteredCount: 7,
-    color: "cyan",
-    cards: [
-      {
-        id: "next-1",
-        question: "¿Qué es Next.js?",
-        answer:
-          "Es un framework de React para crear aplicaciones web con renderizado del lado del servidor, rutas y optimizaciones integradas.",
-      },
-      {
-        id: "next-2",
-        question: "¿Qué función cumple el App Router?",
-        answer:
-          "Organiza las rutas mediante carpetas y archivos dentro del directorio app.",
-      },
-      {
-        id: "next-3",
-        question: "¿Qué diferencia existe entre un Server Component y un Client Component?",
-        answer:
-          "Los Server Components se renderizan en el servidor; los Client Components permiten estado, efectos y eventos del navegador.",
-      },
-    ],
-  },
-  {
-    id: "sql",
-    name: "Consultas SQL",
-    subject: "Bases de Datos",
-    description: "Consultas, filtros y relaciones.",
-    cardCount: 18,
-    masteredCount: 11,
-    color: "blue",
-    cards: [
-      {
-        id: "sql-1",
-        question: "¿Para qué se utiliza SELECT?",
-        answer:
-          "Para consultar y recuperar datos almacenados en una o más tablas.",
-      },
-      {
-        id: "sql-2",
-        question: "¿Qué hace una cláusula WHERE?",
-        answer:
-          "Filtra las filas y devuelve únicamente las que cumplen una condición.",
-      },
-    ],
-  },
-  {
-    id: "agile",
-    name: "Metodologías ágiles",
-    subject: "Ingeniería de Software",
-    description: "Scrum, Kanban y trabajo iterativo.",
-    cardCount: 15,
-    masteredCount: 9,
-    color: "violet",
-    cards: [
-      {
-        id: "agile-1",
-        question: "¿Cuál es el propósito de un Sprint?",
-        answer:
-          "Entregar un incremento funcional del producto dentro de un periodo corto y definido.",
-      },
-      {
-        id: "agile-2",
-        question: "¿Qué representa una columna en un tablero Kanban?",
-        answer:
-          "Una etapa del flujo de trabajo por la que avanzan las tareas.",
-      },
-    ],
-  },
-  {
-    id: "data",
-    name: "Preparación de datos",
-    subject: "Análisis de Datos",
-    description: "Limpieza, transformación y validación.",
-    cardCount: 20,
-    masteredCount: 13,
-    color: "emerald",
-    cards: [
-      {
-        id: "data-1",
-        question: "¿Qué es un dato duplicado?",
-        answer:
-          "Un registro repetido que representa la misma observación o entidad dentro del conjunto de datos.",
-      },
-      {
-        id: "data-2",
-        question: "¿Por qué se normalizan los formatos?",
-        answer:
-          "Para mantener consistencia y facilitar el análisis, comparación y procesamiento.",
-      },
-    ],
-  },
-];
+const DECK_COLORS = [
+  "cyan",
+  "blue",
+  "violet",
+  "emerald",
+] as const;
 
-const mockProgress: StudyProgressData = {
-  mastered: 40,
-  pending: 25,
-  streak: 6,
-  studyMinutes: 28,
-};
+interface DeckGroup {
+  id: string;
+  name: string;
+  cardCount: number;
+  color: (typeof DECK_COLORS)[number];
+  cards: FlashcardItem[];
+}
+
+function groupByDocument(
+  cards: FlashcardApi[],
+): DeckGroup[] {
+  const groups = new Map<
+    string,
+    { name: string; cards: FlashcardItem[] }
+  >();
+
+  for (const card of cards) {
+    const key = card.document_id ?? "general";
+    if (!groups.has(key)) {
+      groups.set(key, {
+        name:
+          key === "general"
+            ? "General"
+            : `Documento ${key.slice(0, 8)}`,
+        cards: [],
+      });
+    }
+    groups.get(key)!.cards.push({
+      id: card.id,
+      question: card.question,
+      answer: card.answer,
+    });
+  }
+
+  return Array.from(groups.entries()).map(
+    ([id, group], index) => ({
+      id,
+      name: group.name,
+      cardCount: group.cards.length,
+      color: DECK_COLORS[index % DECK_COLORS.length],
+      cards: group.cards,
+    }),
+  );
+}
 
 export default function FlashcardsContainer() {
-  const [selectedDeck, setSelectedDeck] =
-    useState<FlashcardDeck>(mockDecks[0]);
-
-  const [currentIndex, setCurrentIndex] =
-    useState(0);
-
-  const [showAnswer, setShowAnswer] =
-    useState(false);
-
-  const totalCards = useMemo(
-    () =>
-      mockDecks.reduce(
-        (total, deck) => total + deck.cardCount,
-        0,
-      ),
-    [],
+  const [allCards, setAllCards] = useState<
+    FlashcardApi[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(
+    null,
   );
 
-  function selectDeck(deck: FlashcardDeck) {
-    setSelectedDeck(deck);
+  const [selectedDeckIndex, setSelectedDeckIndex] =
+    useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
+
+  useEffect(() => {
+    flashcardService
+      .getAll()
+      .then(setAllCards)
+      .catch((err) =>
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Error al cargar flashcards",
+        ),
+      )
+      .finally(() => setLoading(false));
+  }, []);
+
+  function refreshCards() {
+    setLoading(true);
+    setError(null);
+    flashcardService
+      .getAll()
+      .then(setAllCards)
+      .catch((err) =>
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Error al cargar flashcards",
+        ),
+      )
+      .finally(() => setLoading(false));
+  }
+
+  const decks = useMemo(
+    () => groupByDocument(allCards),
+    [allCards],
+  );
+
+  const selectedDeck =
+    decks[selectedDeckIndex] ?? null;
+
+  const totalCards = allCards.length;
+
+  function selectDeck(index: number) {
+    setSelectedDeckIndex(index);
     setCurrentIndex(0);
     setShowAnswer(false);
   }
@@ -154,6 +136,7 @@ export default function FlashcardsContainer() {
   }
 
   function goToNext() {
+    if (!selectedDeck) return;
     setCurrentIndex((current) =>
       Math.min(
         current + 1,
@@ -166,7 +149,6 @@ export default function FlashcardsContainer() {
   function restartCurrentDeck() {
     setCurrentIndex(0);
     setShowAnswer(false);
-
     window.scrollTo({
       top: 0,
       behavior: "smooth",
@@ -178,40 +160,70 @@ export default function FlashcardsContainer() {
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
         <FlashcardsHeader
           totalCards={totalCards}
-          onCreateDeck={() => {
-            window.alert(
-              "El formulario para crear mazos se agregará posteriormente.",
-            );
-          }}
+          onCreateDeck={() =>
+            setIsGenerateModalOpen(true)
+          }
         />
 
-        <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1.8fr)_minmax(300px,0.8fr)]">
-          <StudyCard
-            deck={selectedDeck}
-            currentIndex={currentIndex}
-            showAnswer={showAnswer}
-            onToggleAnswer={() =>
-              setShowAnswer((current) => !current)
-            }
-            onPrevious={goToPrevious}
-            onNext={goToNext}
-          />
+        {loading && (
+          <p className="text-helper text-center text-sm py-12">
+            Cargando flashcards...
+          </p>
+        )}
 
-          <div className="flex flex-col gap-8">
-            <StudyProgress progress={mockProgress} />
+        {error && (
+          <p className="text-red-500 text-center text-sm py-12">
+            {error}
+          </p>
+        )}
 
-            <QuickStudyPanel
-              onStart={restartCurrentDeck}
+        {!loading && !error && selectedDeck && (
+          <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1.8fr)_minmax(300px,0.8fr)]">
+            <StudyCard
+              deck={selectedDeck}
+              currentIndex={currentIndex}
+              showAnswer={showAnswer}
+              onToggleAnswer={() =>
+                setShowAnswer((current) => !current)
+              }
+              onPrevious={goToPrevious}
+              onNext={goToNext}
             />
+
+            <div className="flex flex-col gap-8">
+              <StudyProgress
+                progress={{
+                  total: selectedDeck.cards.length,
+                }}
+              />
+              <QuickStudyPanel
+                onStart={restartCurrentDeck}
+              />
+            </div>
           </div>
-        </div>
+        )}
+
+        {!loading && !error && !selectedDeck && (
+          <p className="text-helper text-center text-sm py-12">
+            No hay flashcards disponibles. Crea documentos y genera flashcards desde ellos.
+          </p>
+        )}
 
         <DeckList
-          decks={mockDecks}
-          selectedDeckId={selectedDeck.id}
+          decks={decks}
+          selectedDeckIndex={selectedDeckIndex}
           onSelectDeck={selectDeck}
         />
       </div>
+
+      <GenerateFlashcardsModal
+        isOpen={isGenerateModalOpen}
+        onClose={() => {
+          setIsGenerateModalOpen(false);
+          refreshCards();
+        }}
+        onGenerated={refreshCards}
+      />
     </WorkspaceShell>
   );
 }

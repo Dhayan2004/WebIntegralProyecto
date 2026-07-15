@@ -1,175 +1,212 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import WorkspaceShell from "@/components/common/WorkspaceShell";
-import FeaturedQuiz from "@/components/quizzes/FeaturedQuiz";
-import PerformancePanel from "@/components/quizzes/PerformancePanel";
 import QuizList from "@/components/quizzes/QuizList";
-import QuizStats from "@/components/quizzes/QuizStats";
 import QuizzesHeader from "@/components/quizzes/QuizzesHeader";
 import StartQuizModal from "@/components/quizzes/StartQuizModal";
+import { quizService } from "@/services/quizService";
 import type {
-  QuizFilter,
-  QuizPerformance,
-  StudyQuiz,
+  QuizApi,
+  QuizQuestion,
 } from "@/types/quiz";
 
-const mockQuizzes: StudyQuiz[] = [
-  {
-    id: "quiz-next",
-    title: "Fundamentos de Next.js",
-    subject: "Desarrollo Web",
-    description:
-      "Evalúa tus conocimientos sobre App Router, componentes, renderizado y organización de rutas.",
-    questionCount: 15,
-    durationMinutes: 12,
-    difficulty: "medium",
-    status: "pending",
-    score: null,
-    progress: 0,
-    lastAttempt: null,
-  },
-  {
-    id: "quiz-sql",
-    title: "Consultas y relaciones SQL",
-    subject: "Bases de Datos",
-    description:
-      "Repasa SELECT, WHERE, JOIN, GROUP BY y funciones de agregación.",
-    questionCount: 20,
-    durationMinutes: 15,
-    difficulty: "hard",
-    status: "completed",
-    score: 82,
-    progress: 100,
-    lastAttempt: "ayer",
-  },
-  {
-    id: "quiz-agile",
-    title: "Metodologías ágiles",
-    subject: "Ingeniería de Software",
-    description:
-      "Conceptos de Scrum, Kanban, Sprints y organización de equipos.",
-    questionCount: 12,
-    durationMinutes: 9,
-    difficulty: "easy",
-    status: "in_progress",
-    score: null,
-    progress: 58,
-    lastAttempt: "hoy",
-  },
-  {
-    id: "quiz-data",
-    title: "Preparación de datos",
-    subject: "Análisis de Datos",
-    description:
-      "Limpieza, valores nulos, duplicados y validación de información.",
-    questionCount: 18,
-    durationMinutes: 14,
-    difficulty: "medium",
-    status: "completed",
-    score: 91,
-    progress: 100,
-    lastAttempt: "hace 2 días",
-  },
-  {
-    id: "quiz-english",
-    title: "Relative clauses",
-    subject: "Inglés",
-    description:
-      "Uso de who, which, that, where y whose dentro de oraciones.",
-    questionCount: 10,
-    durationMinutes: 7,
-    difficulty: "easy",
-    status: "pending",
-    score: null,
-    progress: 0,
-    lastAttempt: null,
-  },
-];
-
-const mockPerformance: QuizPerformance = {
-  averageScore: 86,
-  completedQuizzes: 8,
-  pendingQuizzes: 3,
-  bestScore: 96,
-  weeklyGoal: 5,
-  weeklyCompleted: 3,
-};
-
 export default function QuizzesContainer() {
-  const [selectedFilter, setSelectedFilter] =
-    useState<QuizFilter>("all");
+  const [quizzes, setQuizzes] = useState<QuizApi[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(
+    null,
+  );
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeQuiz, setActiveQuiz] = useState<
+    QuizQuestion | null
+  >(null);
+  const [currentQuestionIndex, setCurrentQuestionIndex] =
+    useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState<
+    string | null
+  >(null);
+  const [score, setScore] = useState(0);
+  const [answered, setAnswered] = useState(false);
 
-  const [selectedQuiz, setSelectedQuiz] =
-    useState<StudyQuiz | null>(null);
+  useEffect(() => {
+    quizService
+      .getAll()
+      .then(setQuizzes)
+      .catch((err) =>
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Error al cargar cuestionarios",
+        ),
+      )
+      .finally(() => setLoading(false));
+  }, []);
 
-  const [isModalOpen, setIsModalOpen] =
-    useState(false);
-
-  const featuredQuiz = mockQuizzes[0];
-
-  const filteredQuizzes = useMemo(() => {
-    if (selectedFilter === "all") {
-      return mockQuizzes;
-    }
-
-    if (selectedFilter === "completed") {
-      return mockQuizzes.filter(
-        (quiz) => quiz.status === "completed",
-      );
-    }
-
-    return mockQuizzes.filter(
-      (quiz) =>
-        quiz.status === "pending" ||
-        quiz.status === "in_progress",
-    );
-  }, [selectedFilter]);
-
-  function openQuiz(quiz: StudyQuiz) {
-    setSelectedQuiz(quiz);
-    setIsModalOpen(true);
+  function handleGenerate(newQuizzes: QuizApi[]) {
+    setQuizzes((prev) => [...newQuizzes, ...prev]);
+    setIsModalOpen(false);
   }
 
-  function createQuiz() {
-    setSelectedQuiz(null);
-    setIsModalOpen(true);
+  function startQuiz() {
+    if (quizzes.length === 0) return;
+    const shuffled = [...quizzes].sort(
+      () => Math.random() - 0.5,
+    );
+    setActiveQuiz({
+      id: shuffled[0].id,
+      question: shuffled[0].question,
+      options: shuffled[0].options,
+      correct_answer: shuffled[0].correct_answer,
+    });
+    setCurrentQuestionIndex(0);
+    setScore(0);
+    setAnswered(false);
+    setSelectedAnswer(null);
+  }
+
+  function handleAnswer(answer: string) {
+    if (answered) return;
+    setSelectedAnswer(answer);
+    setAnswered(true);
+    if (answer === activeQuiz?.correct_answer) {
+      setScore((s) => s + 1);
+    }
+  }
+
+  function handleNext() {
+    const nextIndex = currentQuestionIndex + 1;
+    if (nextIndex >= quizzes.length) {
+      setActiveQuiz(null);
+      return;
+    }
+    const q = quizzes[nextIndex];
+    setActiveQuiz({
+      id: q.id,
+      question: q.question,
+      options: q.options,
+      correct_answer: q.correct_answer,
+    });
+    setCurrentQuestionIndex(nextIndex);
+    setSelectedAnswer(null);
+    setAnswered(false);
   }
 
   return (
     <WorkspaceShell userName="Aarón">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
         <QuizzesHeader
-          totalQuizzes={mockQuizzes.length}
-          onCreateQuiz={createQuiz}
+          totalQuizzes={quizzes.length}
+          onCreateQuiz={() => setIsModalOpen(true)}
         />
 
-        <QuizStats performance={mockPerformance} />
+        {loading && (
+          <p className="text-helper text-center text-sm py-12">
+            Cargando cuestionarios...
+          </p>
+        )}
 
-        <FeaturedQuiz
-          quiz={featuredQuiz}
-          onStart={openQuiz}
-        />
+        {error && (
+          <p className="text-red-500 text-center text-sm py-12">
+            {error}
+          </p>
+        )}
 
-        <div className="grid grid-cols-1 gap-8 xl:grid-cols-[minmax(0,1.8fr)_minmax(300px,0.8fr)]">
-          <QuizList
-            quizzes={filteredQuizzes}
-            selectedFilter={selectedFilter}
-            onFilterChange={setSelectedFilter}
-            onStart={openQuiz}
-          />
+        {activeQuiz && (
+          <section className="rounded-3xl border border-brand-border bg-brand-card p-6 shadow-sm sm:p-8">
+            <div className="flex items-center justify-between">
+              <p className="text-brand text-sm">
+                Pregunta {currentQuestionIndex + 1} de{" "}
+                {quizzes.length}
+              </p>
+              <p className="text-nav text-sm">
+                Puntos: {score}
+              </p>
+            </div>
 
-          <PerformancePanel
-            performance={mockPerformance}
-          />
-        </div>
+            <h2 className="text-display mt-4 text-xl">
+              {activeQuiz.question}
+            </h2>
+
+            <div className="mt-6 space-y-3">
+              {activeQuiz.options.map((option) => {
+                const isSelected =
+                  selectedAnswer === option;
+                const isCorrect =
+                  option ===
+                  activeQuiz.correct_answer;
+                let style =
+                  "border-brand-border bg-brand-bg hover:border-brand-cyan-light";
+                if (answered && isCorrect)
+                  style =
+                    "border-green-500 bg-green-50";
+                else if (
+                  answered &&
+                  isSelected &&
+                  !isCorrect
+                )
+                  style = "border-red-500 bg-red-50";
+
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => handleAnswer(option)}
+                    disabled={answered}
+                    className={`w-full rounded-xl border p-4 text-left text-sm transition ${style}`}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+
+            {answered && (
+              <button
+                type="button"
+                onClick={handleNext}
+                className="mt-6 rounded-xl bg-brand-cyan px-6 py-3 text-sm text-white transition hover:bg-brand-cyan-hover"
+              >
+                {currentQuestionIndex + 1 >=
+                quizzes.length
+                  ? "Finalizar"
+                  : "Siguiente"}
+              </button>
+            )}
+          </section>
+        )}
+
+        {!activeQuiz && !loading && !error && (
+          <>
+            <p className="text-helper text-center text-sm">
+              {quizzes.length === 0
+                ? "No hay preguntas. Genera un cuestionario desde un documento."
+                : `Tienes ${quizzes.length} preguntas disponibles.`}
+            </p>
+
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={startQuiz}
+                disabled={quizzes.length === 0}
+                className="rounded-xl bg-brand-cyan px-6 py-3 text-sm text-white transition hover:bg-brand-cyan-hover disabled:opacity-50"
+              >
+                Comenzar cuestionario
+              </button>
+            </div>
+          </>
+        )}
+
+        {!activeQuiz && !loading && !error && (
+          <QuizList quizzes={quizzes} />
+        )}
       </div>
 
       <StartQuizModal
         isOpen={isModalOpen}
-        selectedQuiz={selectedQuiz}
         onClose={() => setIsModalOpen(false)}
+        onGenerated={handleGenerate}
       />
     </WorkspaceShell>
   );

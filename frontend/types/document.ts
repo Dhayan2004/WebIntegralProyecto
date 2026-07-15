@@ -11,15 +11,25 @@ export type DocumentFilter =
   | "presentation"
   | "text";
 
+export interface DocumentApi {
+  id: string;
+  title: string;
+  content: string | null;
+  subject_id: string | null;
+  file_name: string | null;
+  file_size_bytes: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface StudyDocument {
   id: string;
   title: string;
-  description: string;
   subject: string;
   type: DocumentType;
   fileName: string;
   size: string;
-  pages: number | null;
   createdAt: string;
   isProcessed: boolean;
 }

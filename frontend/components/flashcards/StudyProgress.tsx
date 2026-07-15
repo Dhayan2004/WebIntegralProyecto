@@ -1,31 +1,8 @@
-import type { StudyProgressData } from "@/types/flashcard";
-
 interface StudyProgressProps {
-  progress: StudyProgressData;
+  progress: {
+    total: number;
+  };
 }
-
-const progressItems = [
-  {
-    key: "mastered",
-    label: "Dominadas",
-    abbreviation: "OK",
-  },
-  {
-    key: "pending",
-    label: "Por repasar",
-    abbreviation: "RP",
-  },
-  {
-    key: "streak",
-    label: "Días de racha",
-    abbreviation: "RC",
-  },
-  {
-    key: "studyMinutes",
-    label: "Minutos hoy",
-    abbreviation: "TI",
-  },
-] as const;
 
 export default function StudyProgress({
   progress,
@@ -39,49 +16,34 @@ export default function StudyProgress({
         <p className="text-brand text-sm">
           Tu rendimiento
         </p>
-
         <h2
           id="study-progress-title"
           className="text-display mt-2 text-xl"
         >
           Progreso de estudio
         </h2>
-
-        <p className="text-helper mt-2 text-sm">
-          Mantén la constancia para dominar más conceptos.
-        </p>
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3">
-        {progressItems.map((item) => (
-          <div
-            key={item.key}
-            className="rounded-2xl bg-brand-bg p-4"
-          >
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-cyan-muted">
-              <span className="text-brand text-xs">
-                {item.abbreviation}
-              </span>
-            </div>
-
-            <p className="text-display mt-4 text-2xl">
-              {progress[item.key]}
-            </p>
-
-            <p className="text-helper mt-1 text-xs">
-              {item.label}
-            </p>
+        <div className="rounded-2xl bg-brand-bg p-4">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-cyan-muted">
+            <span className="text-brand text-xs">TK</span>
           </div>
-        ))}
+          <p className="text-display mt-4 text-2xl">
+            {progress.total}
+          </p>
+          <p className="text-helper mt-1 text-xs">
+            Total tarjetas
+          </p>
+        </div>
       </div>
 
       <div className="mt-6 rounded-2xl bg-brand-cyan-muted p-4">
         <p className="text-nav text-sm text-dark-title">
-          Buen ritmo de estudio
+          Sigue practicando
         </p>
-
         <p className="text-helper mt-1 text-xs">
-          Has repasado más tarjetas que la semana anterior.
+          Repasa tus tarjetas para mejorar la retención.
         </p>
       </div>
     </section>

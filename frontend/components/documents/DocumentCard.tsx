@@ -85,14 +85,10 @@ import type {
           <p className="text-brand text-xs">
             {document.subject}
           </p>
-  
+
           <h2 className="text-display mt-2 text-xl">
             {document.title}
           </h2>
-  
-          <p className="text-helper mt-2 line-clamp-3 text-sm">
-            {document.description}
-          </p>
         </div>
   
         <div className="mt-5 rounded-xl bg-brand-bg p-4">
@@ -104,16 +100,10 @@ import type {
             <span className="text-helper text-xs">
               {styles.label}
             </span>
-  
+
             <span className="text-helper text-xs">
               {document.size}
             </span>
-  
-            {document.pages !== null && (
-              <span className="text-helper text-xs">
-                {document.pages} páginas
-              </span>
-            )}
           </div>
         </div>
   

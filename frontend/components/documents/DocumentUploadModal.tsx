@@ -2,25 +2,60 @@
 
 import { useState } from "react";
 
+import { documentService } from "@/services/documentService";
+import type { SubjectApi } from "@/types/subject";
+
 interface DocumentUploadModalProps {
   isOpen: boolean;
+  subjects: SubjectApi[];
   onClose: () => void;
 }
 
 export default function DocumentUploadModal({
   isOpen,
+  subjects,
   onClose,
 }: DocumentUploadModalProps) {
-  const [selectedFileName, setSelectedFileName] =
+  const [selectedSubjectId, setSelectedSubjectId] =
     useState("");
+  const [title, setTitle] = useState("");
+  const [selectedFile, setSelectedFile] =
+    useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<
+    string | null
+  >(null);
 
-  if (!isOpen) {
-    return null;
-  }
+  if (!isOpen) return null;
 
   function handleClose() {
-    setSelectedFileName("");
+    setSelectedSubjectId("");
+    setTitle("");
+    setSelectedFile(null);
+    setUploadError(null);
     onClose();
+  }
+
+  async function handleUpload() {
+    if (!selectedFile || !selectedSubjectId) return;
+
+    try {
+      setUploading(true);
+      setUploadError(null);
+      await documentService.upload(
+        selectedFile,
+        selectedSubjectId,
+      );
+      handleClose();
+    } catch (err) {
+      setUploadError(
+        err instanceof Error
+          ? err.message
+          : "Error al subir el documento",
+      );
+    } finally {
+      setUploading(false);
+    }
   }
 
   return (
@@ -43,29 +78,23 @@ export default function DocumentUploadModal({
             <p className="text-brand text-sm">
               Nuevo contenido
             </p>
-
             <h2
               id="upload-document-title"
               className="text-display mt-2 text-2xl"
             >
               Subir documento
             </h2>
-
             <p className="text-helper mt-2 text-sm">
               Selecciona un archivo y asígnalo a una materia.
             </p>
           </div>
-
           <button
             type="button"
             aria-label="Cerrar"
             onClick={handleClose}
             className="flex h-10 w-10 items-center justify-center rounded-xl text-dark-muted transition hover:bg-brand-bg hover:text-dark-title"
           >
-            <span
-              aria-hidden="true"
-              className="text-2xl"
-            >
+            <span aria-hidden="true" className="text-2xl">
               ×
             </span>
           </button>
@@ -76,12 +105,19 @@ export default function DocumentUploadModal({
             <span className="text-nav text-sm text-dark-title">
               Materia
             </span>
-
-            <select className="text-helper mt-2 w-full rounded-xl border border-brand-border bg-brand-bg px-4 py-3 text-sm outline-none transition focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan-light">
-              <option>Desarrollo Web</option>
-              <option>Bases de Datos</option>
-              <option>Ingeniería de Software</option>
-              <option>Análisis de Datos</option>
+            <select
+              value={selectedSubjectId}
+              onChange={(e) =>
+                setSelectedSubjectId(e.target.value)
+              }
+              className="text-helper mt-2 w-full rounded-xl border border-brand-border bg-brand-bg px-4 py-3 text-sm outline-none transition focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan-light"
+            >
+              <option value="">Selecciona una materia</option>
+              {subjects.map((subject) => (
+                <option key={subject.id} value={subject.id}>
+                  {subject.name}
+                </option>
+              ))}
             </select>
           </label>
 
@@ -89,9 +125,10 @@ export default function DocumentUploadModal({
             <span className="text-nav text-sm text-dark-title">
               Título del documento
             </span>
-
             <input
               type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               placeholder="Ej. Introducción a Next.js"
               className="text-helper mt-2 w-full rounded-xl border border-brand-border bg-brand-bg px-4 py-3 text-sm outline-none transition placeholder:text-dark-muted focus:border-brand-cyan focus:ring-2 focus:ring-brand-cyan-light"
             />
@@ -104,29 +141,32 @@ export default function DocumentUploadModal({
               className="sr-only"
               onChange={(event) => {
                 const file =
-                  event.target.files?.[0];
-
-                setSelectedFileName(
-                  file?.name ?? "",
-                );
+                  event.target.files?.[0] ?? null;
+                setSelectedFile(file);
+                if (file && !title) {
+                  setTitle(
+                    file.name.replace(/\.[^.]+$/, ""),
+                  );
+                }
               }}
             />
-
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-cyan-muted">
-              <span className="text-brand">
-                DO
-              </span>
+              <span className="text-brand">DO</span>
             </div>
-
             <p className="text-nav mt-4 text-sm text-dark-title">
-              {selectedFileName ||
+              {selectedFile?.name ??
                 "Selecciona un archivo"}
             </p>
-
             <p className="text-helper mt-2 text-xs">
               PDF, Word, PowerPoint o texto
             </p>
           </label>
+
+          {uploadError && (
+            <p className="text-red-500 text-xs">
+              {uploadError}
+            </p>
+          )}
         </div>
 
         <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -137,13 +177,19 @@ export default function DocumentUploadModal({
           >
             Cancelar
           </button>
-
           <button
             type="button"
-            onClick={handleClose}
-            className="text-nav rounded-xl bg-brand-cyan px-5 py-3 text-sm text-white transition hover:bg-brand-cyan-hover"
+            onClick={handleUpload}
+            disabled={
+              !selectedFile ||
+              !selectedSubjectId ||
+              uploading
+            }
+            className="text-nav rounded-xl bg-brand-cyan px-5 py-3 text-sm text-white transition hover:bg-brand-cyan-hover disabled:opacity-50"
           >
-            Guardar documento
+            {uploading
+              ? "Subiendo..."
+              : "Guardar documento"}
           </button>
         </div>
       </div>

@@ -51,10 +51,6 @@ export default function ConversationItem({
             </span>
           </div>
 
-          <p className="text-helper mt-1 truncate text-xs">
-            {conversation.subject}
-          </p>
-
           <p className="text-helper mt-2 line-clamp-2 text-xs">
             {conversation.messages.at(-1)?.content ??
               "Conversación sin mensajes"}
