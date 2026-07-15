@@ -9,6 +9,7 @@ import GenerateFlashcardsModal from "@/components/flashcards/GenerateFlashcardsM
 import QuickStudyPanel from "@/components/flashcards/QuickStudyPanel";
 import StudyCard from "@/components/flashcards/StudyCard";
 import StudyProgress from "@/components/flashcards/StudyProgress";
+import { useAuth } from "@/hooks/useAuth";
 import { flashcardService } from "@/services/flashcardService";
 import type {
   FlashcardApi,
@@ -68,6 +69,8 @@ function groupByDocument(
 }
 
 export default function FlashcardsContainer() {
+  const { user } = useAuth();
+  const userName = user?.name ?? "Usuario";
   const [allCards, setAllCards] = useState<
     FlashcardApi[]
   >([]);
@@ -156,7 +159,7 @@ export default function FlashcardsContainer() {
   }
 
   return (
-    <WorkspaceShell userName="Aarón">
+    <WorkspaceShell userName={userName}>
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
         <FlashcardsHeader
           totalCards={totalCards}

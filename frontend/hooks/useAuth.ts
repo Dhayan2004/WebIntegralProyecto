@@ -1,1 +1,8 @@
-export function useAuth() { return {}; }
+"use client";
+
+import { useContext } from "react";
+import { AuthContext, type AuthContextValue } from "@/providers/AuthProvider";
+
+export function useAuth(): AuthContextValue {
+  return useContext(AuthContext);
+}

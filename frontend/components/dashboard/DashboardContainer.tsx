@@ -7,8 +7,8 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import QuickActions from "@/components/dashboard/QuickActions";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 import StatsGrid from "@/components/dashboard/StatsGrid";
+import { useAuth } from "@/hooks/useAuth";
 import { dashboardService } from "@/services/dashboardService";
-import { authService } from "@/services/auth.service";
 import type { DashboardMetrics } from "@/types/dashboard";
 
 const defaultMetrics: DashboardMetrics = {
@@ -21,20 +21,21 @@ const defaultMetrics: DashboardMetrics = {
 };
 
 export default function DashboardContainer() {
+  const { user } = useAuth();
+  const userName = user?.name ?? "Usuario";
+
   const [metrics, setMetrics] =
     useState<DashboardMetrics>(defaultMetrics);
-  const [userName, setUserName] = useState("Usuario");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      dashboardService.getMetrics().catch(() => defaultMetrics),
-      authService.getCurrentUser().catch(() => null),
-    ]).then(([m, user]) => {
-      if (m) setMetrics(m);
-      if (user?.name) setUserName(user.name);
-      setLoading(false);
-    });
+    dashboardService
+      .getMetrics()
+      .then((m) => {
+        if (m) setMetrics(m);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   return (

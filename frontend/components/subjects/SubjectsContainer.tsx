@@ -15,6 +15,7 @@ import SubjectsGrid from "@/components/subjects/SubjectsGrid";
 import SubjectsHeader from "@/components/subjects/SubjectsHeader";
 import SubjectsToolbar from "@/components/subjects/SubjectsToolbar";
 
+import { useAuth } from "@/hooks/useAuth";
 import { subjectsService } from "@/services/subjects.service";
 
 import type {
@@ -126,6 +127,8 @@ function mapApiSubject(
 }
 
 export default function SubjectsContainer() {
+  const { user } = useAuth();
+  const userName = user?.name ?? "Usuario";
   const [subjects, setSubjects] =
     useState<Subject[]>([]);
 
@@ -425,7 +428,7 @@ export default function SubjectsContainer() {
 
   if (isLoading) {
     return (
-      <WorkspaceShell userName="Aarón">
+      <WorkspaceShell userName={userName}>
         <div className="mx-auto flex min-h-[60vh] w-full max-w-7xl items-center justify-center px-5 py-8">
           <div className="rounded-2xl border border-brand-border bg-brand-card px-8 py-6 text-center shadow-sm">
             <p className="text-nav text-dark-title">
@@ -444,7 +447,7 @@ export default function SubjectsContainer() {
   }
 
   return (
-    <WorkspaceShell userName="Aarón">
+    <WorkspaceShell userName={userName}>
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
         <SubjectsHeader
           totalSubjects={

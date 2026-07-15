@@ -45,12 +45,15 @@ class ChatService:
 	def send_message(db: Session, session_id: str, current_user: User, message: str) -> list[ChatMessage]:
 		session = ChatService.get_session(db, session_id, current_user)
 		user_message = ChatMessage(session_id=session.id, user_id=current_user.id, role="user", content=message)
-		
-		# Call RAG Engine to generate answer
-		from app.services.rag_question_service import RAGQuestionService
-		rag_result = RAGQuestionService.answer(db, current_user.id, message)
-		assistant_text = rag_result["answer"]
-		
+
+		assistant_text = "Lo siento, hubo un error al procesar tu mensaje. Intenta de nuevo."
+		try:
+			from app.services.rag_question_service import RAGQuestionService
+			rag_result = RAGQuestionService.answer(db, current_user.id, message)
+			assistant_text = rag_result["answer"]
+		except Exception:
+			pass
+
 		assistant_message = ChatMessage(session_id=session.id, user_id=current_user.id, role="assistant", content=assistant_text)
 		db.add_all([user_message, assistant_message])
 		db.commit()

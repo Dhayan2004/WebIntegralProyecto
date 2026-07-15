@@ -8,6 +8,7 @@ import ConversationSidebar from "@/components/chat/ConversationSidebar";
 import MessageInput from "@/components/chat/MessageInput";
 import SuggestedPrompts from "@/components/chat/SuggestedPrompts";
 import WorkspaceShell from "@/components/common/WorkspaceShell";
+import { useAuth } from "@/hooks/useAuth";
 import { chatService } from "@/services/chatService";
 import type {
   ChatConversation,
@@ -52,6 +53,9 @@ function mapMessage(
 }
 
 export default function ChatContainer() {
+  const { user, loading: authLoading } = useAuth();
+  const userName = user?.name ?? "Usuario";
+
   const [conversations, setConversations] = useState<
     ChatConversation[]
   >([]);
@@ -65,6 +69,12 @@ export default function ChatContainer() {
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     chatService
       .getSessions()
       .then(async (sessions) => {
@@ -92,7 +102,7 @@ export default function ChatContainer() {
         ),
       )
       .finally(() => setLoading(false));
-  }, []);
+  }, [authLoading, user]);
 
   const selectedConversation =
     conversations.find((c) => c.id === selectedId) ??
@@ -106,6 +116,7 @@ export default function ChatContainer() {
 
   async function createConversation() {
     try {
+      setError(null);
       const session =
         await chatService.createSession();
       const newConv: ChatConversation = {
@@ -119,8 +130,12 @@ export default function ChatContainer() {
         ...current,
       ]);
       setSelectedId(newConv.id);
-    } catch {
-      setError("Error al crear conversación");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Error al crear conversación",
+      );
     }
   }
 
@@ -201,7 +216,7 @@ export default function ChatContainer() {
   }
 
   return (
-    <WorkspaceShell userName="Aarón">
+    <WorkspaceShell userName={userName}>
       <div className="h-[calc(100vh-5rem)] p-0 lg:p-6">
         <div className="mx-auto grid h-full w-full max-w-7xl overflow-hidden border-brand-border bg-brand-card shadow-sm lg:grid-cols-[320px_minmax(0,1fr)] lg:rounded-3xl lg:border">
           <ConversationSidebar
@@ -257,6 +272,17 @@ export default function ChatContainer() {
 
             {!loading &&
               !error &&
+              !user && (
+                <div className="flex items-center justify-center py-12">
+                  <p className="text-helper text-sm">
+                    Inicia sesión para usar el chat.
+                  </p>
+                </div>
+              )}
+
+            {!loading &&
+              !error &&
+              user &&
               !selectedConversation && (
                 <div className="flex items-center justify-center py-12">
                   <p className="text-helper text-sm">

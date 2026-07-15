@@ -6,6 +6,7 @@ import WorkspaceShell from "@/components/common/WorkspaceShell";
 import QuizList from "@/components/quizzes/QuizList";
 import QuizzesHeader from "@/components/quizzes/QuizzesHeader";
 import StartQuizModal from "@/components/quizzes/StartQuizModal";
+import { useAuth } from "@/hooks/useAuth";
 import { quizService } from "@/services/quizService";
 import type {
   QuizApi,
@@ -13,6 +14,8 @@ import type {
 } from "@/types/quiz";
 
 export default function QuizzesContainer() {
+  const { user } = useAuth();
+  const userName = user?.name ?? "Usuario";
   const [quizzes, setQuizzes] = useState<QuizApi[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(
@@ -94,7 +97,7 @@ export default function QuizzesContainer() {
   }
 
   return (
-    <WorkspaceShell userName="Aarón">
+    <WorkspaceShell userName={userName}>
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
         <QuizzesHeader
           totalQuizzes={quizzes.length}

@@ -7,6 +7,7 @@ import GenerateSummaryModal from "@/components/summaries/GenerateSummaryModal";
 import SummariesGrid from "@/components/summaries/SummariesGrid";
 import SummariesHeader from "@/components/summaries/SummariesHeader";
 import SummariesToolbar from "@/components/summaries/SummariesToolbar";
+import { useAuth } from "@/hooks/useAuth";
 import { summaryService } from "@/services/summaryService";
 import type {
   StudySummary,
@@ -57,6 +58,8 @@ function mapSummaryToStudy(
 }
 
 export default function SummariesContainer() {
+  const { user } = useAuth();
+  const userName = user?.name ?? "Usuario";
   const [summaries, setSummaries] = useState<
     StudySummary[]
   >([]);
@@ -113,7 +116,7 @@ export default function SummariesContainer() {
   }
 
   return (
-    <WorkspaceShell userName="Aarón">
+    <WorkspaceShell userName={userName}>
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
         <SummariesHeader
           totalSummaries={summaries.length}

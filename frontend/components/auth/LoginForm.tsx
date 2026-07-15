@@ -10,6 +10,7 @@ import {
 
 import LoginButton from "./LoginButton";
 import LoginInput from "./LoginInput";
+import { useAuth } from "@/hooks/useAuth";
 import { authService } from "@/services/auth.service";
 
 interface LoginFormData {
@@ -19,6 +20,7 @@ interface LoginFormData {
 
 export default function LoginForm() {
   const router = useRouter();
+  const { refresh } = useAuth();
 
   const [formData, setFormData] =
     useState<LoginFormData>({
@@ -68,8 +70,8 @@ export default function LoginForm() {
         password: formData.password,
       });
 
+      await refresh();
       router.push("/dashboard");
-      router.refresh();
     } catch (requestError) {
       setError(
         requestError instanceof Error

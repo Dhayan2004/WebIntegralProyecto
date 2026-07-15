@@ -7,6 +7,7 @@ import DocumentUploadModal from "@/components/documents/DocumentUploadModal";
 import DocumentsGrid from "@/components/documents/DocumentsGrid";
 import DocumentsHeader from "@/components/documents/DocumentsHeader";
 import DocumentsToolbar from "@/components/documents/DocumentsToolbar";
+import { useAuth } from "@/hooks/useAuth";
 import { documentService } from "@/services/documentService";
 import { subjectsService } from "@/services/subjects.service";
 import type {
@@ -75,6 +76,8 @@ function mapDocumentToStudy(
 }
 
 export default function DocumentsContainer() {
+  const { user } = useAuth();
+  const userName = user?.name ?? "Usuario";
   const [documents, setDocuments] = useState<
     StudyDocument[]
   >([]);
@@ -167,7 +170,7 @@ export default function DocumentsContainer() {
   }
 
   return (
-    <WorkspaceShell userName="Aarón">
+    <WorkspaceShell userName={userName}>
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
         <DocumentsHeader
           totalDocuments={documents.length}

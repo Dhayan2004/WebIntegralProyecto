@@ -1,5 +1,6 @@
 import localFont from "next/font/local";
 import "./globals.css";
+import Providers from "@/providers/Providers";
 
 const poppins = localFont({
   src: [
@@ -44,7 +45,7 @@ export default function RootLayout({
   return (
     <html lang="es" className={poppins.variable}>
       <body className="font-sans antialiased bg-brand-bg text-dark-body">
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
